@@ -1,0 +1,65 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{% block title %}MyApp{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-900">
+    <!-- Navbar -->
+    <header class="bg-white border-b shadow-sm">
+      <div
+        class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <a href="{% url 'home' %}" class="text-xl font-bold text-blue-600"
+          >ChaTVerse</a
+        >
+      </div>
+    </header>
+
+    <main
+      class="flex flex-col items-center justify-start py-12 px-4 sm:px-6 lg:px-8 min-h-screen relative">
+      <!-- Toast Container -->
+      <div
+        id="toast-container"
+        class="w-full max-w-xs fixed right-5 top-[80px] z-50 space-y-3"></div>
+
+      <!-- Page Block -->
+      <div class="w-full max-w-md">{% block content %}{% endblock %}</div>
+    </main>
+
+    <!-- Toast Script -->
+    {% if messages %}
+    <script>
+      const toastContainer = document.getElementById("toast-container");
+
+      {% for message in messages %}
+      (function () {
+          const toast = document.createElement("div");
+
+          toast.className = `
+              px-4 py-3 rounded-lg shadow-md border w-full sm:max-w-xs
+              bg-{{ message.tags }}-100 text-{{ message.tags }}-800 border-{{ message.tags }}-300
+              transform transition duration-500 ease-in-out translate-x-full opacity-0
+          `;
+
+          toast.innerText = "{{ message|escapejs }}";
+          toastContainer.appendChild(toast);
+
+          setTimeout(() => {
+              toast.classList.remove("translate-x-full", "opacity-0");
+              toast.classList.add("translate-x-0", "opacity-100");
+          }, 50);
+
+          setTimeout(() => {
+              toast.classList.remove("translate-x-0", "opacity-100");
+              toast.classList.add("translate-x-full", "opacity-0");
+              setTimeout(() => toast.remove(), 500);
+          }, 4000);
+      })();
+      {% endfor %}
+    </script>
+    {% endif %} {% block scripts %}{% endblock %}
+  </body>
+</html>

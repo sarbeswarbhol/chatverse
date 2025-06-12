@@ -1,0 +1,40 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-xl shadow-md border border-gray-200">
+    <h2 class="text-2xl font-bold text-center text-blue-600 mb-6">Welcome Back</h2>
+    <form method="POST" class="space-y-5" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div>
+            <label for="username" class="block text-sm font-medium mb-1">Username or Email</label>
+            <input type="text" name="username" id="username" required
+                   class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="relative">
+            <label for="password" class="block text-sm font-medium mb-1">Password</label>
+            <input type="password" name="password" id="password" required
+                   class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+            <button type="button" id="togglePassword" class="absolute right-3 top-9 text-gray-500 text-sm">👁️</button>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+    </form>
+    <p class="text-center text-sm text-gray-600 mt-4">
+        Don’t have an account?
+        <a href="{% url 'signup' %}" class="text-blue-600 hover:underline font-medium">Sign up</a>
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const toggle = document.getElementById('togglePassword');
+    const input = document.getElementById('password');
+    toggle.addEventListener('click', () => {
+        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+        input.setAttribute('type', type);
+        toggle.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+</script>
+{% endblock %}
