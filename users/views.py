@@ -14,6 +14,3 @@ def login_view(request):
 
 def logout_view(request):
     pass
-
-def chat_view(request):
-    return render(request, 'core/chat.html')
