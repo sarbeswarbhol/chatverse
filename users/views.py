@@ -5,6 +5,10 @@ from django.contrib import messages
 
 
 def signup_view(request):
+    messages.success(request, "🎉 Account created successfully!")
+    messages.info(request, "ℹ️ Welcome to the signup page!")
+    messages.warning(request, "⚠️ This is just a demo warning.")
+    messages.error(request, "❌ Something went wrong!")
     return render(request, 'auth/signup.html')
 
 
@@ -14,3 +18,6 @@ def login_view(request):
 
 def logout_view(request):
     pass
+
+def chat_view(request):
+    return render(request, 'core/chat.html')
