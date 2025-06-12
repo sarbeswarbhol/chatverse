@@ -24,6 +24,17 @@ def signup_view(request):
 
 
 def login_view(request):
+    if request.method=="POST":
+        username=request.POST.get('username')
+        password=request.POST.get('password')
+     
+        # print(f"Username: {username}, Password: {password}")
+        
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            messages.success(request, 'Logged in successfully!')
+            return redirect('home')
     return render(request, 'auth/login.html')
 
 
