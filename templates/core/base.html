@@ -5,72 +5,65 @@
     <meta charset="UTF-8" />
     <title>{% block title %}MyApp{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- ToastBox JS -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/tryarctix/toastbox@2c245a48954563501222af65b563a7402696c2cc/toast.js"
+      integrity="sha256-ZFjGMxACqe/zgL1otpMe/sh5esMlII0LhNUHkhkJ8lA="
+      crossorigin="anonymous"></script>
   </head>
   <body class="bg-gray-100 text-gray-900">
     <!-- Navbar -->
     <header class="bg-white border-b shadow-sm">
-      <div
-        class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-        <a href="{% url 'home' %}" class="text-xl font-bold text-blue-600"
-          >ChaTVerse</a
-        >
+      <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <a href="{% url 'home' %}" class="text-xl font-bold text-blue-600">
+          ChaTVerse
+        </a>
+
+        {% if request.user.is_authenticated %}
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="ml-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">
+              Sign Out
+            </button>
+          </form>
+        {% endif %}
       </div>
     </header>
 
     <main
       class="flex flex-col items-center justify-start py-12 px-4 sm:px-6 lg:px-8 min-h-screen relative">
-      <!-- Toast Container -->
-      <div
-        id="toast-container"
-        class="w-full max-w-xs fixed right-5 top-[80px] z-50 space-y-3"></div>
+      <!-- Toasts Container -->
+      <div id="toast-container"></div>
 
-      <!-- Page Block -->
+      <!-- Page Content -->
       <div class="w-full">{% block content %}{% endblock %}</div>
     </main>
 
-    <!-- Toast Script -->
-    {% if messages %}
+    <!-- ToastBox Django Messages -->
     <script>
-      const toastContainer = document.getElementById("toast-container");
-
-      {% for message in messages %}
-      (function () {
-          const toast = document.createElement("div");
-          let bg = "bg-blue-100", text = "text-blue-800", border = "border-blue-300";
-
-          {% if message.tags == "success" %}
-              bg = "bg-green-100"; text = "text-green-800"; border = "border-green-300";
-          {% elif message.tags == "error" %}
-              bg = "bg-red-100"; text = "text-red-800"; border = "border-red-300";
-          {% elif message.tags == "warning" %}
-              bg = "bg-yellow-100"; text = "text-yellow-800"; border = "border-yellow-300";
-          {% elif message.tags == "info" %}
-              bg = "bg-blue-100"; text = "text-blue-800"; border = "border-blue-300";
-          {% endif %}
-
-          toast.className = `
-              px-4 py-3 rounded-lg shadow-md border w-full sm:max-w-xs
-              ${bg} ${text} ${border}
-              transform transition duration-500 ease-in-out translate-x-full opacity-0
-          `;
-
-          toast.innerText = "{{ message|escapejs }}";
-          toastContainer.appendChild(toast);
-
-          setTimeout(() => {
-              toast.classList.remove("translate-x-full", "opacity-0");
-              toast.classList.add("translate-x-0", "opacity-100");
-          }, 50);
-
-          setTimeout(() => {
-              toast.classList.remove("translate-x-0", "opacity-100");
-              toast.classList.add("translate-x-full", "opacity-0");
-              setTimeout(() => toast.remove(), 500);
-          }, 4000);
-      })();
-      {% endfor %}
+      document.addEventListener("DOMContentLoaded", function () {
+        {% if messages %}
+          {% for message in messages %}
+            showToast("{{ message|escapejs }}", "{{ message.tags }}", {
+              theme: "classic",
+              animation: "fade",
+              position: "top-right",
+              duration: 4000,
+              showProgress: true,
+              progressStyle: "default",
+              showClose: true
+            });
+          {% endfor %}
+        {% endif %}
+      });
     </script>
-    {% endif %} {% block scripts %}{% endblock %}
+
+    {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -1,21 +1,26 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Home | MyApp{% endblock %}
+{% block title %}ChaTVerse | Simple Chat{% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-xl shadow-md border border-gray-200 p-8 text-center">
-    <h1 class="text-3xl font-bold text-blue-600 mb-4">Welcome to ChaTVerse 👋</h1>
-    <p class="text-gray-600 mb-6">
-        This is your homepage. You can customize this content to include your app’s features,
-        welcome message, or user dashboard.
-    </p>
-    <div class="flex justify-center gap-4">
-        <a href="{% url 'signup' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-            Get Started
-        </a>
-        <a href="{% url 'login' %}" class="border border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-md">
-            Login
-        </a>
+<div class="max-w-sm mx-auto p-6 text-center mt-10">
+  <div class="mb-8">
+    <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
     </div>
+    <h1 class="text-3xl font-bold mb-2">ChaTVerse</h1>
+    <p class="text-gray-600">Chat made simple</p>
+  </div>
+
+  <div class="space-y-4">
+    <a href="{% url 'signup' %}" class="block bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium transition-colors">
+      Create Account
+    </a>
+    <a href="{% url 'login' %}" class="block text-blue-500 hover:bg-blue-50 py-3 px-4 rounded-lg font-medium transition-colors">
+      Sign In
+    </a>
+  </div>
 </div>
 {% endblock %}

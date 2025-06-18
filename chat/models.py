@@ -16,17 +16,17 @@ class Room(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_rooms')
     members = models.ManyToManyField(User, related_name='rooms', blank=True)
     room_type = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, default='public')
-    password = models.CharField(max_length=128, blank=True)  # Optional: for private rooms
+    password = models.CharField(max_length=128, blank=True)
     is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name + "-" + str(uuid.uuid4())[:8])
+            self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} ({self.room_type})"
+        return f"{self.name} is ({self.room_type})"
 
 class Message(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='messages')
