@@ -1,166 +1,90 @@
-{% extends "core/base.html" %} {% load static %} {% block title %}Chat Dashboard
-| ChatVerse{% endblock %} {% block content %}
-<div x-data="{ open: false }" class="max-w-7xl mx-auto p-6 space-y-6">
-  <!-- Greeting -->
-  <div class="text-xl font-semibold text-gray-800">
-    Welcome, {{ user.username }} 👋
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}Chat Dashboard | ChatVerse{% endblock %}
+{% block content %}
+<div x-data="{ open: false }" class="w-full h-screen flex bg-gray-100">
+  <!-- Sidebar: Users -->
+  <div class="w-full md:w-1/3 xl:w-1/4 bg-white border-r overflow-y-auto">
+    <div class="flex items-center justify-between px-4 py-3 border-b">
+      <h2 class="text-lg font-semibold text-green-600">Users</h2>
+    </div>
+    <ul class="divide-y">
+      {% for person in users %}
+      <li class="hover:bg-green-50 transition px-4 py-3">
+        <a href="{% url 'create_direct_room' person.id %}" class="flex items-center gap-3">
+          <img src="https://i.pravatar.cc/40?u={{ person.id }}" class="w-10 h-10 rounded-full" alt="avatar">
+          <span class="text-gray-800 font-medium">{{ person.username }}</span>
+        </a>
+      </li>
+      {% empty %}
+      <li class="text-center py-3 text-gray-500">No other users found.</li>
+      {% endfor %}
+    </ul>
   </div>
 
-  <!-- Chat Dashboard -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Group Chats -->
-    <div class="bg-white shadow rounded-xl p-4 border">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-lg font-semibold text-blue-600">Group Chats</h2>
-        <button
-          @click="open = true"
-          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded text-sm shadow">
-          ➕ Create Room
-        </button>
-      </div>
-      <ul class="space-y-2">
-        {% for group in groups %}
-        <li class="bg-blue-50 p-3 rounded-lg hover:bg-blue-100 transition">
-          <div class="flex justify-between items-center">
-            <a
-              href="{% url 'group_room_detail' group.slug %}"
-              class="text-blue-800 font-medium flex items-center gap-2">
-              💬 {{ group.name }} {% if group.room_type == 'private' %}<span
-                title="Private room"
-                >🔒</span
-              >{% endif %}
-            </a>
-            <div class="flex gap-2 text-sm">
-              {% if group.owner == user %}
-              <!-- Delete Room -->
-              <form
-                method="post"
-                action="{% url 'delete_group_room' group.slug %}">
-                {% csrf_token %}
-                <button
-                  class="text-red-600 hover:underline"
-                  title="Delete room">
-                  🗑️
-                </button>
-              </form>
-              {% elif user in group.members.all %}
-              <!-- Leave Room -->
-              <form
-                method="post"
-                action="{% url 'leave_group_room' group.slug %}">
-                {% csrf_token %}
-                <button
-                  class="text-yellow-600 hover:underline"
-                  title="Leave room">
-                  🚪
-                </button>
-              </form>
-              {% else %}
-              <!-- Join Room -->
-              <a
-                href="{% url 'join_group_room' group.slug %}"
-                class="text-green-600 hover:underline text-sm"
-                title="Join this room"
-                >➕ Join</a
-              >
-              {% endif %}
-            </div>
-          </div>
-        </li>
-        {% empty %}
-        <li class="text-gray-500">No group chats available.</li>
-        {% endfor %}
-      </ul>
+  <!-- Main Chat Section -->
+  <div class="flex-1 flex flex-col overflow-y-auto">
+    <!-- Header -->
+    <div class="flex justify-between items-center bg-green-600 px-6 py-4 text-white">
+      <h2 class="text-xl font-semibold">Welcome, {{ user.username }} 👋</h2>
+      <button @click="open = true" class="bg-white text-green-600 hover:bg-gray-100 px-4 py-1 rounded shadow-sm text-sm">
+        ➕ New Group
+      </button>
     </div>
 
-    <!-- Direct Chats -->
-    <div class="bg-white shadow rounded-xl p-4 border">
-      <h2 class="text-lg font-semibold text-green-600 mb-3">Direct Messages</h2>
-      <ul class="space-y-2">
-        {% for direct in directs %}
-        <li class="bg-green-50 p-3 rounded-lg hover:bg-green-100 transition">
-          <a href="{% url 'direct_room_detail' direct.id %}" class="text-green-800 font-medium">
-            👤 Chat with {{ direct.other_user.username }}
-          </a>
-        </li>
-        {% empty %}
-        <li class="text-gray-500">No direct messages yet.</li>
-        {% endfor %}
-      </ul>
+    <!-- Group Rooms -->
+    <div class="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for group in groups %}
+      <div class="bg-white rounded-lg shadow hover:shadow-md transition p-4 border relative">
+        <a href="{% url 'group_room_detail' group.slug %}" class="text-green-700 font-semibold text-lg flex items-center gap-2">
+          💬 {{ group.name }} {% if group.room_type == 'private' %}<span title="Private">🔒</span>{% endif %}
+        </a>
+        <div class="mt-3 flex justify-between text-sm">
+          {% if group.owner == user %}
+          <form method="post" action="{% url 'delete_group_room' group.slug %}">
+            {% csrf_token %}
+            <button class="text-red-500 hover:underline">🗑️ Delete</button>
+          </form>
+          {% elif user in group.members.all %}
+          <form method="post" action="{% url 'leave_group_room' group.slug %}">
+            {% csrf_token %}
+            <button class="text-yellow-600 hover:underline">🚪 Leave</button>
+          </form>
+          {% else %}
+          <a href="{% url 'join_group_room' group.slug %}" class="text-green-600 hover:underline">➕ Join</a>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-gray-500 col-span-full">No group chats available.</div>
+      {% endfor %}
     </div>
   </div>
 
   <!-- Create Room Modal -->
-  <div
-    x-show="open"
-    x-cloak
-    x-data="{ isPrivate: false }"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-    <div
-      @click.away="open = false"
-      class="bg-white w-full max-w-md p-6 rounded-xl shadow-lg relative">
-      <h2 class="text-xl font-semibold text-center mb-4 text-blue-600">
-        Create Group Room
-      </h2>
-
-      <form
-        method="post"
-        action="{% url 'create_group_room' %}"
-        class="space-y-4">
+  <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div @click.away="open = false" class="bg-white rounded-xl shadow-lg max-w-md w-full p-6 space-y-4 relative">
+      <h2 class="text-lg font-semibold text-green-600 text-center">Create Group Room</h2>
+      <form method="post" action="{% url 'create_group_room' %}" x-data="{ isPrivate: false }" class="space-y-4">
         {% csrf_token %}
         <div>
-          <label class="block font-medium text-gray-700">Room Name</label>
-          <input
-            type="text"
-            name="name"
-            required
-            class="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter room name" />
+          <label class="block text-sm font-medium text-gray-700">Room Name</label>
+          <input type="text" name="name" required class="w-full border px-3 py-2 rounded-md focus:ring-green-500" placeholder="Enter room name">
         </div>
-
-        <!-- Private toggle -->
-        <div class="flex items-center gap-2">
-          <input
-            type="checkbox"
-            name="is_private"
-            id="privateRoom"
-            x-model="isPrivate"
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded" />
-          <label for="privateRoom" class="text-sm font-medium text-gray-700">
-            Private Room (password protected)
-          </label>
+        <div class="flex items-center space-x-2">
+          <input type="checkbox" name="is_private" id="is_private" x-model="isPrivate" class="w-4 h-4 text-green-600">
+          <label for="is_private" class="text-sm text-gray-700">Private Room</label>
         </div>
-
-        <!-- Password field (conditional) -->
         <div x-show="isPrivate" x-cloak>
-          <label class="block font-medium text-gray-700 mt-2">Password</label>
-          <input
-            type="password"
-            name="password"
-            class="w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Set room password" />
+          <label class="block text-sm font-medium text-gray-700">Password</label>
+          <input type="password" name="password" class="w-full border px-3 py-2 rounded-md focus:ring-green-500" placeholder="Set password">
         </div>
-
         <div class="flex justify-end gap-3">
-          <button
-            type="button"
-            @click="open = false"
-            class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-1 rounded">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded">
-            Create
-          </button>
+          <button type="button" @click="open = false" class="bg-gray-200 text-gray-700 px-4 py-1 rounded">Cancel</button>
+          <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded">Create</button>
         </div>
       </form>
-
-      <button
-        @click="open = false"
-        class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-xl font-bold">
-        &times;
-      </button>
+      <button @click="open = false" class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-2xl">&times;</button>
     </div>
   </div>
 </div>

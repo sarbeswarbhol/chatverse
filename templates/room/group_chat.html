@@ -2,37 +2,193 @@
 {% block title %}{{ room.name }} | Chat{% endblock %}
 {% block content %}
 
-<div class="max-w-4xl mx-auto p-6 space-y-4">
-  <h1 class="text-2xl font-semibold text-blue-700">{{ room.name }}</h1>
+<div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+  <!-- Chat header -->
+  <div class="flex items-center justify-between border-b pb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-blue-800 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        {{ room.name }}
+      </h1>
+      <p class="text-sm text-gray-500 mt-1">
+        {% if room.members.count == 1 %}
+          1 member
+        {% else %}
+          {{ room.members.count }} members
+        {% endif %}
+      </p>
+    </div>
+    <div class="flex space-x-2">
+      <button class="p-2 rounded-full hover:bg-gray-100">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  </div>
 
   {% if is_member %}
     <!-- Message list -->
-    <div class="space-y-3 max-h-96 overflow-y-auto border rounded p-4 bg-gray-50">
+    <div id="chat-log" class="space-y-4 h-[calc(100vh-280px)] overflow-y-auto p-2">
       {% for msg in chat_messages %}
-        <div>
-          <strong class="text-blue-700">{{ msg.sender.username }}:</strong>
-          <span>{{ msg.content }}</span>
-          <span class="text-xs text-gray-400 block">{{ msg.created_at|date:"d M Y, h:i A" }}</span>
+        <div class="{% if msg.sender == request.user %}flex justify-end{% else %}flex justify-start{% endif %}">
+          <div class="max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 
+            {% if msg.sender == request.user %}
+              bg-blue-600 text-white
+            {% else %}
+              bg-gray-100 text-gray-800
+            {% endif %}">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-medium {% if msg.sender == request.user %}text-blue-100{% else %}text-gray-500{% endif %}">
+                {% if msg.sender == request.user %}You{% else %}{{ msg.sender.username }}{% endif %}
+              </span>
+              <span class="text-xs {% if msg.sender == request.user %}text-blue-100{% else %}text-gray-500{% endif %}">
+                {{ msg.created_at|date:"h:i A" }}
+              </span>
+            </div>
+            <p class="break-words">{{ msg.content }}</p>
+          </div>
         </div>
       {% empty %}
-        <p class="text-gray-500">No messages yet.</p>
+        <div class="h-full flex flex-col items-center justify-center text-gray-400 py-12">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <p>No messages yet</p>
+          <p class="text-sm mt-1">Be the first to send a message!</p>
+        </div>
       {% endfor %}
     </div>
 
-    <!-- Send message form -->
-    <form method="post" class="mt-4 space-y-2">
-      {% csrf_token %}
-      <textarea name="content" rows="3" required
-        class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-400"
-        placeholder="Type your message here..."></textarea>
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded">
-        Send
-      </button>
-    </form>
+    <!-- Send message box -->
+    <div class="mt-4 border-t pt-4">
+      <div class="relative">
+        <textarea id="chat-message-input" rows="2"
+          class="w-full border border-gray-300 rounded-lg px-4 py-3 pr-16 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          placeholder="Type your message here..."></textarea>
+        <button id="chat-message-send" 
+          class="absolute right-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const roomSlug = "{{ room.slug }}";
+      const currentUser = "{{ request.user.username }}";
+      // const chatSocket = new WebSocket(
+      //     'ws://' + window.location.host + '/ws/chat/group/' + roomSlug + '/'
+      // );
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const chatSocket = new WebSocket(
+        protocol + '://' + window.location.host + '/ws/chat/group/' + roomSlug + '/'
+      );
+
+      // Scroll to bottom of chat
+      function scrollToBottom() {
+        const chatLog = document.getElementById('chat-log');
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+
+      chatSocket.onmessage = function(e) {
+          const data = JSON.parse(e.data);
+          const chatLog = document.getElementById('chat-log');
+          
+          // Remove empty state if it exists
+          if (chatLog.querySelector('.flex-col')) {
+            chatLog.innerHTML = '';
+          }
+
+          const messageDiv = document.createElement('div');
+          messageDiv.className = data.username === currentUser ? "flex justify-end" : "flex justify-start";
+          
+          messageDiv.innerHTML = `
+            <div class="max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 ${
+              data.username === currentUser 
+                ? "bg-blue-600 text-white" 
+                : "bg-gray-100 text-gray-800"
+            }">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-medium ${
+                  data.username === currentUser ? "text-blue-100" : "text-gray-500"
+                }">
+                  ${data.username === currentUser ? "You" : data.username}
+                </span>
+                <span class="text-xs ${
+                  data.username === currentUser ? "text-blue-100" : "text-gray-500"
+                }">
+                  ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <p class="break-words">${data.message}</p>
+            </div>
+          `;
+          
+          chatLog.appendChild(messageDiv);
+          scrollToBottom();
+      };
+
+      chatSocket.onclose = function(e) {
+          console.error('Chat socket closed unexpectedly');
+          // Could add reconnect logic here
+      };
+
+      function sendMessage() {
+          const input = document.getElementById('chat-message-input');
+          const message = input.value.trim();
+
+          if (message !== '') {
+              chatSocket.send(JSON.stringify({
+                  'message': message
+              }));
+              input.value = '';
+              input.focus();
+              // Auto-resize textarea
+              input.style.height = 'auto';
+          }
+      }
+
+      document.getElementById('chat-message-send').onclick = sendMessage;
+
+      // Send on Enter key (but allow Shift+Enter for new lines)
+      document.getElementById('chat-message-input').addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+          }
+      });
+
+      // Auto-resize textarea as user types
+      document.getElementById('chat-message-input').addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = (this.scrollHeight) + 'px';
+      });
+
+      // Auto-scroll to bottom on page load
+      window.addEventListener('load', scrollToBottom);
+    </script>
+
   {% else %}
-    <p class="text-red-600 font-semibold mt-4">
-      🚫 You are not a member of this group. Please join to view and send messages.
-    </p>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-red-800 mb-2">Access Restricted</h3>
+      <p class="text-red-600">
+        You are not a member of this group. Please request to join in order to view and send messages.
+      </p>
+      <div class="mt-4">
+        <a href="#" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+          Request to Join
+        </a>
+      </div>
+    </div>
   {% endif %}
 </div>
 

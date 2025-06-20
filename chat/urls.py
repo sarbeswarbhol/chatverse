@@ -10,5 +10,5 @@ urlpatterns = [
     path('leave-group/<slug:slug>/', views.leave_group_room, name='leave_group_room'),
     path('group/<slug:slug>/', views.group_room_detail, name='group_room_detail'),
     path('direct/<uuid:room_id>/', views.direct_room_detail, name='direct_room_detail'),
-    path('direct/create/<uuid:user_id>/', views.create_direct_room, name='create_direct_room'),
+    path('direct/create/<int:user_id>/', views.create_direct_room, name='create_direct_room'),
 ]

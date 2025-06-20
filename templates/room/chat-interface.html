@@ -1,27 +1,49 @@
 {% extends "core/base.html" %}
 {% load static %}
-{% block title %}Chat with {{ other_user.username }}{% endblock %}
+
+{% block title %}
+  {% if chat_type == 'direct' %}Chat with {{ other_user.username }}
+  {% else %}{{ room.name }} | Group Chat{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto mt-8 p-6 bg-white shadow-lg rounded-xl border border-gray-200">
-  <!-- Chat header with user info and back button -->
+  <!-- Dynamic Header -->
   <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-semibold">
-        {{ other_user.username|first|upper }}
+    {% if chat_type == 'direct' %}
+      <!-- Direct Chat Header -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-{{ chat_color }}-100 flex items-center justify-center text-{{ chat_color }}-600 font-semibold">
+          {{ other_user.username|first|upper }}
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-800">Chat with {{ other_user.username }}</h2>
+          <p class="text-xs text-gray-500">
+            {% if is_online %}
+              <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-green-500 mr-1"></span> Online</span>
+            {% else %}
+              Last seen {{ other_user.last_login|timesince }} ago
+            {% endif %}
+          </p>
+        </div>
       </div>
-      <div>
-        <h2 class="text-lg font-semibold text-gray-800">Chat with {{ other_user.username }}</h2>
-        <p class="text-xs text-gray-500">
-          {% if is_online %}
-            <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-green-500 mr-1"></span> Online</span>
-          {% else %}
-            Last seen {{ other_user.last_login|timesince }} ago
-          {% endif %}
-        </p>
+    {% else %}
+      <!-- Group Chat Header -->
+      <div class="flex items-center space-x-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-{{ chat_color }}-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-800">{{ room.name }}</h2>
+          <p class="text-xs text-gray-500">
+            {% if room.members.count == 1 %}1 member{% else %}{{ room.members.count }} members{% endif %}
+            {% if room.room_type == 'private' %} • 🔒 Private{% endif %}
+          </p>
+        </div>
       </div>
-    </div>
-    <a href="{% url 'chat-home' %}" class="text-sm text-gray-600 hover:text-green-600 transition flex items-center">
+    {% endif %}
+    
+    <a href="{% url 'chat-home' %}" class="text-sm text-gray-600 hover:text-{{ chat_color }}-600 transition flex items-center">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
       </svg>
@@ -29,21 +51,21 @@
     </a>
   </div>
 
-  <!-- Chat messages container -->
+  <!-- Chat Messages (Same for both types) -->
   <div id="chat-log" class="h-[32rem] overflow-y-auto space-y-4 bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
     {% for msg in chat_messages %}
       <div class="{% if msg.sender == request.user %}flex justify-end{% else %}flex justify-start{% endif %}">
         <div class="max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg 
           {% if msg.sender == request.user %}
-            bg-green-600 text-white
+            bg-{{ chat_color }}-600 text-white
           {% else %}
             bg-white border border-gray-200 text-gray-800 shadow-sm
           {% endif %}">
           <div class="flex items-center justify-between mb-1">
-            <p class="text-xs font-medium {% if msg.sender == request.user %}text-green-100{% else %}text-gray-500{% endif %}">
+            <p class="text-xs font-medium {% if msg.sender == request.user %}text-{{ chat_color }}-100{% else %}text-gray-500{% endif %}">
               {% if msg.sender == request.user %}You{% else %}{{ msg.sender.username }}{% endif %}
             </p>
-            <span class="text-xs {% if msg.sender == request.user %}text-green-100{% else %}text-gray-400{% endif %}">
+            <span class="text-xs {% if msg.sender == request.user %}text-{{ chat_color }}-100{% else %}text-gray-400{% endif %}">
               {{ msg.created_at|date:"H:i" }}
             </span>
           </div>
@@ -61,17 +83,17 @@
     {% endfor %}
   </div>
 
-  <!-- Message form -->
+  <!-- Message Form -->
   <div class="flex gap-2 items-center">
     <input
       id="chat-message-input"
       type="text"
       placeholder="Type your message..."
       required
-      class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition" />
+      class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-{{ chat_color }}-500 focus:border-transparent transition" />
     <button
       id="chat-message-send"
-      class="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-lg transition flex items-center justify-center">
+      class="bg-{{ chat_color }}-600 hover:bg-{{ chat_color }}-700 text-white px-5 py-3 rounded-lg transition flex items-center justify-center">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
       </svg>
@@ -79,34 +101,30 @@
   </div>
 </div>
 
-<!-- WebSocket Script -->
+<!-- Unified WebSocket Script -->
 <script>
   const roomId = "{{ room.id }}";
   const currentUser = "{{ request.user.username }}";
-  // const chatSocket = new WebSocket(
-  //   'ws://' + window.location.host + '/ws/chat/direct/' + roomId + '/'
-  // );
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const chatType = "{{ chat_type }}"; // 'direct' or 'group'
   const chatSocket = new WebSocket(
-    protocol + '://' + window.location.host + '/ws/chat/direct/' + roomId + '/'
+    'ws://' + window.location.host + '/ws/chat/' + chatType + '/' + roomId + '/'
   );
 
-  // Scroll to bottom of chat
+  // Universal functions
   function scrollToBottom() {
     const chatLog = document.getElementById('chat-log');
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // Format timestamp
   function formatTime(date) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  // Message handler
   chatSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
     const chatLog = document.getElementById('chat-log');
     
-    // Remove empty state if it exists
     if (chatLog.querySelector('.flex-col')) {
       chatLog.innerHTML = '';
     }
@@ -117,17 +135,17 @@
     messageDiv.innerHTML = `
       <div class="max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${
         data.username === currentUser 
-          ? "bg-green-600 text-white" 
+          ? "bg-{{ chat_color }}-600 text-white" 
           : "bg-white border border-gray-200 text-gray-800 shadow-sm"
       }">
         <div class="flex items-center justify-between mb-1">
           <p class="text-xs font-medium ${
-            data.username === currentUser ? "text-green-100" : "text-gray-500"
+            data.username === currentUser ? "text-{{ chat_color }}-100" : "text-gray-500"
           }">
             ${data.username === currentUser ? "You" : data.username}
           </p>
           <span class="text-xs ${
-            data.username === currentUser ? "text-green-100" : "text-gray-400"
+            data.username === currentUser ? "text-{{ chat_color }}-100" : "text-gray-400"
           }">
             ${formatTime(new Date())}
           </span>
@@ -142,26 +160,19 @@
     scrollToBottom();
   };
 
-  chatSocket.onclose = function(e) {
-    console.error('Chat socket closed unexpectedly');
-    // You could add a reconnection logic here
-  };
-
+  // Universal send function
   function sendMessage() {
     const inputField = document.getElementById('chat-message-input');
     const message = inputField.value.trim();
-    if (message !== "") {
-      chatSocket.send(JSON.stringify({
-        'message': message
-      }));
+    if (message) {
+      chatSocket.send(JSON.stringify({ message }));
       inputField.value = '';
       inputField.focus();
     }
   }
 
+  // Event listeners
   document.getElementById('chat-message-send').onclick = sendMessage;
-
-  // Send on Enter key (but allow Shift+Enter for new lines)
   document.getElementById('chat-message-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -169,7 +180,6 @@
     }
   });
 
-  // Auto-scroll to bottom on page load
   window.addEventListener('load', scrollToBottom);
 </script>
 {% endblock %}
