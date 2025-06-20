@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+{% block title %}{{ room.name }} | Chat{% endblock %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto p-6 space-y-4">
+  <h1 class="text-2xl font-semibold text-blue-700">{{ room.name }}</h1>
+
+  {% if is_member %}
+    <!-- Message list -->
+    <div class="space-y-3 max-h-96 overflow-y-auto border rounded p-4 bg-gray-50">
+      {% for msg in chat_messages %}
+        <div>
+          <strong class="text-blue-700">{{ msg.sender.username }}:</strong>
+          <span>{{ msg.content }}</span>
+          <span class="text-xs text-gray-400 block">{{ msg.created_at|date:"d M Y, h:i A" }}</span>
+        </div>
+      {% empty %}
+        <p class="text-gray-500">No messages yet.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Send message form -->
+    <form method="post" class="mt-4 space-y-2">
+      {% csrf_token %}
+      <textarea name="content" rows="3" required
+        class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-400"
+        placeholder="Type your message here..."></textarea>
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded">
+        Send
+      </button>
+    </form>
+  {% else %}
+    <p class="text-red-600 font-semibold mt-4">
+      🚫 You are not a member of this group. Please join to view and send messages.
+    </p>
+  {% endif %}
+</div>
+
+{% endblock %}

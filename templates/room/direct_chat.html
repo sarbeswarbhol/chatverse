@@ -1,0 +1,52 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Chat with {{ room.user2.username }}{% endblock %}
+
+{% block content %}
+<div class="h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-green-600 text-white p-4 flex items-center shadow">
+        <img src="https://i.pravatar.cc/40?u={{ room.user2.id }}" alt="Avatar" class="w-10 h-10 rounded-full mr-3">
+        <h1 class="text-lg font-semibold">{{ room.user2.username }}</h1>
+        <a href="{% url 'chat-home' %}" class="ml-auto text-sm text-white underline">← Back</a>
+    </header>
+
+    <!-- Chat messages -->
+    <main id="chat-box" class="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-gray-100">
+        {% for msg in chat_messages %}
+            {% if msg.sender == request.user %}
+                <!-- Outgoing -->
+                <div class="flex justify-end">
+                    <div class="bg-green-500 text-white px-4 py-2 rounded-xl max-w-xs shadow">
+                        <p class="text-sm">{{ msg.content }}</p>
+                        <p class="text-xs text-right mt-1 opacity-70">{{ msg.created_at|date:"H:i" }}</p>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Incoming -->
+                <div class="flex justify-start">
+                    <div class="bg-white border px-4 py-2 rounded-xl max-w-xs shadow">
+                        <p class="text-sm">{{ msg.content }}</p>
+                        <p class="text-xs text-right mt-1 text-gray-500">{{ msg.created_at|date:"H:i" }}</p>
+                    </div>
+                </div>
+            {% endif %}
+        {% empty %}
+            <p class="text-center text-gray-400 mt-10">No messages yet. Say hi 👋</p>
+        {% endfor %}
+    </main>
+
+    <!-- Message form -->
+    <form method="POST" class="flex items-center gap-2 p-4 border-t bg-white">
+        {% csrf_token %}
+        <input type="text" name="content" placeholder="Type a message..."
+               class="flex-1 px-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-green-400"
+               autocomplete="off" required>
+        <button type="submit"
+                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full font-medium">
+            Send
+        </button>
+    </form>
+</div>
+{% endblock %}

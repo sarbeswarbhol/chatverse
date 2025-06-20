@@ -14,24 +14,29 @@
       src="https://cdn.jsdelivr.net/gh/tryarctix/toastbox@2c245a48954563501222af65b563a7402696c2cc/toast.js"
       integrity="sha256-ZFjGMxACqe/zgL1otpMe/sh5esMlII0LhNUHkhkJ8lA="
       crossorigin="anonymous"></script>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+      defer></script>
   </head>
   <body class="bg-gray-100 text-gray-900">
     <!-- Navbar -->
     <header class="bg-white border-b shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div
+        class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         <a href="{% url 'home' %}" class="text-xl font-bold text-blue-600">
           ChaTVerse
         </a>
 
         {% if request.user.is_authenticated %}
-          <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button
-              type="submit"
-              class="ml-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">
-              Sign Out
-            </button>
-          </form>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="ml-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">
+            Sign Out
+          </button>
+        </form>
         {% endif %}
       </div>
     </header>
