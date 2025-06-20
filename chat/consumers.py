@@ -4,9 +4,6 @@ from channels.db import database_sync_to_async
 from django.contrib.contenttypes.models import ContentType
 from .models import Message, GroupRoom, DirectRoom
 
-# -------------------------
-# Group Chat Consumer
-# -------------------------
 class GroupChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.slug = self.scope['url_route']['kwargs']['slug']
@@ -30,14 +27,25 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        
+        if 'typing' in data:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'typing_indicator',
+                    'username': self.scope["user"].username,
+                    'is_typing': data['typing']
+                }
+            )
+            return
+            
         message = data['message']
         user = self.scope["user"]
 
         group_room = await self.get_group(self.slug)
         if not group_room:
-            return  # Optional: notify client of error
+            return
 
-        # Save message to database
         await self.save_message(user, message, group_room)
 
         await self.channel_layer.group_send(
@@ -51,9 +59,19 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
+            'type': 'message',
             'message': event['message'],
             'username': event['username'],
         }))
+
+    async def typing_indicator(self, event):
+    # Don't send typing notification back to the sender
+        if event['username'] != self.scope["user"].username:
+            await self.send(text_data=json.dumps({
+                'type': 'typing',
+                'username': event['username'],
+                'is_typing': event['is_typing']
+            }))
 
     @database_sync_to_async
     def get_group(self, slug):
@@ -72,9 +90,6 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
             object_id=group_room.id
         )
 
-# -------------------------
-# Direct Chat Consumer
-# -------------------------
 class DirectChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_id = self.scope['url_route']['kwargs']['room_id']
@@ -98,14 +113,25 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        
+        if 'typing' in data:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'typing_indicator',
+                    'username': self.scope["user"].username,
+                    'is_typing': data['typing']
+                }
+            )
+            return
+            
         message = data['message']
         user = self.scope["user"]
 
         direct_room = await self.get_direct(self.room_id)
         if not direct_room:
-            return  # Optional: notify client of error
+            return
 
-        # Save message to database
         await self.save_message(user, message, direct_room)
 
         await self.channel_layer.group_send(
@@ -119,8 +145,16 @@ class DirectChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
         await self.send(text_data=json.dumps({
+            'type': 'message',
             'message': event['message'],
             'username': event['username'],
+        }))
+
+    async def typing_indicator(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'typing',
+            'username': event['username'],
+            'is_typing': event['is_typing']
         }))
 
     @database_sync_to_async

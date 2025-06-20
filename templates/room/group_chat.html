@@ -2,6 +2,35 @@
 {% block title %}{{ room.name }} | Chat{% endblock %}
 {% block content %}
 
+<style>
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .typing-dots {
+        display: inline-flex;
+        align-items: center;
+    }
+    .typing-dots span {
+        width: 6px;
+        height: 6px;
+        margin: 0 1px;
+        background-color: currentColor;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+    .typing-dots span:nth-child(1) {
+        animation-delay: 0s;
+    }
+    .typing-dots span:nth-child(2) {
+        animation-delay: 0.3s;
+    }
+    .typing-dots span:nth-child(3) {
+        animation-delay: 0.6s;
+    }
+</style>
+
 <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
   <!-- Chat header -->
   <div class="flex items-center justify-between border-b pb-4">
@@ -62,6 +91,11 @@
       {% endfor %}
     </div>
 
+    <!-- Typing indicator -->
+    <div id="typing-indicator" class="hidden ml-2 mb-2 text-sm text-gray-500 italic">
+        <span id="typing-users"></span> <span class="typing-dots"><span></span><span></span><span></span></span>
+    </div>
+
     <!-- Send message box -->
     <div class="mt-4 border-t pt-4">
       <div class="relative">
@@ -80,15 +114,16 @@
     <script>
       const roomSlug = "{{ room.slug }}";
       const currentUser = "{{ request.user.username }}";
-      // const chatSocket = new WebSocket(
-      //     'ws://' + window.location.host + '/ws/chat/group/' + roomSlug + '/'
-      // );
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const chatSocket = new WebSocket(
         protocol + '://' + window.location.host + '/ws/chat/group/' + roomSlug + '/'
       );
 
-      // Scroll to bottom of chat
+      // Typing indicator variables
+      let typingTimeout;
+      const typingDelay = 1000;
+      let currentlyTypingUsers = new Set();
+
       function scrollToBottom() {
         const chatLog = document.getElementById('chat-log');
         chatLog.scrollTop = chatLog.scrollHeight;
@@ -96,45 +131,73 @@
 
       chatSocket.onmessage = function(e) {
           const data = JSON.parse(e.data);
-          const chatLog = document.getElementById('chat-log');
           
-          // Remove empty state if it exists
-          if (chatLog.querySelector('.flex-col')) {
-            chatLog.innerHTML = '';
+          // Handle typing indicator
+          if (data.type === 'typing') {
+              const typingIndicator = document.getElementById('typing-indicator');
+              const typingUsers = document.getElementById('typing-users');
+              
+              if (data.is_typing) {
+                  currentlyTypingUsers.add(data.username);
+              } else {
+                  currentlyTypingUsers.delete(data.username);
+              }
+              
+              if (currentlyTypingUsers.size > 0) {
+                  const usersArray = Array.from(currentlyTypingUsers);
+                  if (usersArray.length > 1) {
+                      typingUsers.textContent = usersArray.join(', ') + ' are';
+                  } else {
+                      typingUsers.textContent = usersArray[0] + ' is';
+                  }
+                  typingIndicator.classList.remove('hidden');
+              } else {
+                  typingIndicator.classList.add('hidden');
+              }
+              return;
           }
+          
+          // Handle regular messages
+          if (data.type === 'message') {
+              const chatLog = document.getElementById('chat-log');
+              
+              // Remove empty state if it exists
+              if (chatLog.querySelector('.flex-col')) {
+                chatLog.innerHTML = '';
+              }
 
-          const messageDiv = document.createElement('div');
-          messageDiv.className = data.username === currentUser ? "flex justify-end" : "flex justify-start";
-          
-          messageDiv.innerHTML = `
-            <div class="max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 ${
-              data.username === currentUser 
-                ? "bg-blue-600 text-white" 
-                : "bg-gray-100 text-gray-800"
-            }">
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-xs font-medium ${
-                  data.username === currentUser ? "text-blue-100" : "text-gray-500"
+              const messageDiv = document.createElement('div');
+              messageDiv.className = data.username === currentUser ? "flex justify-end" : "flex justify-start";
+              
+              messageDiv.innerHTML = `
+                <div class="max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-4 py-2 ${
+                  data.username === currentUser 
+                    ? "bg-blue-600 text-white" 
+                    : "bg-gray-100 text-gray-800"
                 }">
-                  ${data.username === currentUser ? "You" : data.username}
-                </span>
-                <span class="text-xs ${
-                  data.username === currentUser ? "text-blue-100" : "text-gray-500"
-                }">
-                  ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-              <p class="break-words">${data.message}</p>
-            </div>
-          `;
-          
-          chatLog.appendChild(messageDiv);
-          scrollToBottom();
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-medium ${
+                      data.username === currentUser ? "text-blue-100" : "text-gray-500"
+                    }">
+                      ${data.username === currentUser ? "You" : data.username}
+                    </span>
+                    <span class="text-xs ${
+                      data.username === currentUser ? "text-blue-100" : "text-gray-500"
+                    }">
+                      ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p class="break-words">${data.message}</p>
+                </div>
+              `;
+              
+              chatLog.appendChild(messageDiv);
+              scrollToBottom();
+          }
       };
 
       chatSocket.onclose = function(e) {
           console.error('Chat socket closed unexpectedly');
-          // Could add reconnect logic here
       };
 
       function sendMessage() {
@@ -147,14 +210,50 @@
               }));
               input.value = '';
               input.focus();
-              // Auto-resize textarea
               input.style.height = 'auto';
+              
+              // Send stopped typing notification
+              chatSocket.send(JSON.stringify({
+                  'typing': false
+              }));
+              clearTimeout(typingTimeout);
           }
       }
 
+      // Typing event listeners
+      const messageInput = document.getElementById('chat-message-input');
+      
+      messageInput.addEventListener('input', function() {
+          if (chatSocket.readyState === WebSocket.OPEN) {
+              // Send typing notification
+              chatSocket.send(JSON.stringify({
+                  'typing': true
+              }));
+              
+              // Clear previous timeout
+              clearTimeout(typingTimeout);
+              
+              // Set timeout to send "stopped typing" notification
+              typingTimeout = setTimeout(() => {
+                  chatSocket.send(JSON.stringify({
+                      'typing': false
+                  }));
+              }, typingDelay);
+          }
+      });
+      
+      // Handle when user leaves the input field
+      messageInput.addEventListener('blur', function() {
+          if (chatSocket.readyState === WebSocket.OPEN) {
+              chatSocket.send(JSON.stringify({
+                  'typing': false
+              }));
+              clearTimeout(typingTimeout);
+          }
+      });
+
       document.getElementById('chat-message-send').onclick = sendMessage;
 
-      // Send on Enter key (but allow Shift+Enter for new lines)
       document.getElementById('chat-message-input').addEventListener('keydown', function(e) {
           if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
@@ -162,16 +261,13 @@
           }
       });
 
-      // Auto-resize textarea as user types
       document.getElementById('chat-message-input').addEventListener('input', function() {
           this.style.height = 'auto';
           this.style.height = (this.scrollHeight) + 'px';
       });
 
-      // Auto-scroll to bottom on page load
       window.addEventListener('load', scrollToBottom);
     </script>
-
   {% else %}
     <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
       <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
